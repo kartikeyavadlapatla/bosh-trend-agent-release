@@ -1,0 +1,10 @@
+---
+name: trend-agent
+
+templates:
+  run-pid.sh: bin/run-pid.sh
+  run.sh:  bin/run.sh
+  stop-pid.sh: bin/stop-pid.sh
+packages: []
+
+properties: {}

@@ -1,0 +1,14 @@
+releases:
+- name: trend-agent
+  version: 0+dev.14
+
+addons:
+- name: trend-agent-addon
+  jobs:
+  - name: trend-agent
+    release: trend-agent
+  include:
+    stemcell:
+      - os: ubuntu-xenial
+  exclude:
+    lifecycle: errand

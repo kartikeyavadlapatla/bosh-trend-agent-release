@@ -1,0 +1,31 @@
+name: trend-agent-deployment
+
+releases:
+- name: trend-agent
+  version: latest
+
+stemcells:
+- alias: default
+  os: ubuntu-xenial
+  version: latest
+
+update:
+  canaries: 1
+  max_in_flight: 1
+  canary_watch_time: 30000-300000
+  update_watch_time: 30000-300000
+
+instance_groups:
+- name: hello
+  instances: 1
+  jobs:
+  - name: trend-agent
+    release: trend-agent
+  stemcell: default
+  vm_type: t3.micro
+  azs:
+  - us-east-2a
+  - us-east-2b
+  - us-east-2c
+  networks:
+  - name: pcf-ondemand

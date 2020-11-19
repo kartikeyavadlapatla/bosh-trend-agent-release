@@ -1,0 +1,10 @@
+name: trend-agent
+version: latest+dev.1
+commit_hash: non-git
+uncommitted_changes: false
+jobs:
+- name: trend-agent
+  version: e916b576a5a33b0b0cf7a92ba7e0c403be158bf4a35f6aae8fddc5fb0920c831
+  fingerprint: e916b576a5a33b0b0cf7a92ba7e0c403be158bf4a35f6aae8fddc5fb0920c831
+  sha1: sha256:0e6c138271dd53df0574928a766d598f5919ad6ca293a2359fc1cd97384c999a
+  packages: []

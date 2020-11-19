@@ -1,0 +1,10 @@
+builds:
+  25b2c473-057b-465b-4cbc-da011050f445:
+    version: v1-latest
+  a3499b58-743b-43d5-6f7b-c09970275c7e:
+    version: latest
+  f19ab68a-ed13-4d52-62b3-9786dd994e45:
+    version: 0+dev.1
+  f2e9f7d7-0abd-434b-4ad1-f27437ca8925:
+    version: latest+dev.1
+format-version: "2"

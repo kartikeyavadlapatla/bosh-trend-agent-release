@@ -1,0 +1,5 @@
+releases:
+- name: trend-agent
+  version: 0+dev.14
+
+addons: []

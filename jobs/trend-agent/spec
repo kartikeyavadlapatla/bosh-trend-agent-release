@@ -5,6 +5,7 @@ templates:
   run-pid.sh: bin/run-pid.sh
   run.sh:  bin/run.sh
   stop-pid.sh: bin/stop-pid.sh
+  stop.sh:  bin/stop.sh
 packages: []
 
 properties: {}

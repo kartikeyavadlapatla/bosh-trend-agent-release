@@ -1,5 +1,5 @@
 check process trend-agent
-  with pidfile /var/vcap/sys/run/trend-agent/pid
+  with pidfile "/var/vcap/sys/run/trend-agent/pid"
   start program "/var/vcap/jobs/trend-agent/bin/run-pid.sh"
   stop program "/var/vcap/jobs/trend-agent/bin/stop-pid.sh"
   group vcap

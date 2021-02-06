@@ -1,0 +1,145 @@
+  - task: upload-addon
+    image: pcf-automation-image
+    input_mapping:
+      TrendAgentRel: pcf-trend-git
+    params:
+      ENV_FILE: env.yml
+      tenantID: ((tenantid))
+      token: ((agenttoken))
+      OPSMAN_IP: ((opsmanip))
+      opsman_private_key_path: ((opsmanprivate-key))
+      version: ((trendversion))
+    config:
+      platform: linux
+      inputs:
+      - name: env
+      - name: TrendAgentRel
+      run:
+        path: bash
+        args:
+          - -c
+          - |
+            set -eux
+            ls -ltr
+            echo $opsman_private_key_path |  sed 's/----- /-----\n/g' | sed 's/ -----/\n-----/g' | sed '2s/ /\n/g' > ssh.key
+            chmod 400 ssh.key
+            cat > run_1.sh << EOL
+            #!/bin/bash
+            set -eux
+            TENANTID=${tenantID}
+            TOKEN=${token}
+            EOL
+
+            cat > run_2.sh << 'EOL'
+            export MANAGERURL='https://dsm.cleardata.com:443'
+            export ACTIVATIONURL='dsm://dsm.cleardata.com:4120/'
+            export CURLOPTIONS='--silent --tlsv1.2'
+            export linuxPlatform=''
+            export isRPM=''
+            if ! type curl >/dev/null 2>&1; then
+                echo "Please install CURL before running this script."
+                logger -t Please install CURL before running this script
+                exit 1
+            fi
+            sudo curl ${MANAGERURL}/software/deploymentscript/platform/linuxdetectscriptv1/ -o /tmp/PlatformDetection $CURLOPTIONS --insecure
+            if [ -s /tmp/PlatformDetection ]; then
+                . /tmp/PlatformDetection
+            else
+                echo "Failed to download the agent installation support script."
+                logger -t Failed to download the Deep Security Agent installation support script
+                exit 1
+            fi
+            platform_detect
+            if [[ -z "${linuxPlatform}" ]] || [[ -z "${isRPM}" ]]; then
+                echo Unsupported platform is detected
+                logger -t Unsupported platform is detected
+                exit 1
+            fi
+            echo Downloading agent package...
+            if [[ $isRPM == 1 ]]; then package='agent.rpm'
+                else package='agent.deb'
+            fi
+            sudo curl -H "Agent-Version-Control: on" ${MANAGERURL}/software/agent/${runningPlatform}${majorVersion}/${archType}/${package}?tenantID=237 \
+                                                    -o /tmp/$package $CURLOPTIONS --insecure
+            echo Installing agent package...
+            rc=1
+            if [[ $isRPM == 1 && -s /tmp/agent.rpm ]]; then
+                rpm -ihv /tmp/agent.rpm
+                rc=$?
+            elif [[ -s /tmp/agent.deb ]]; then
+                sudo dpkg -i /tmp/agent.deb
+                rc=$?
+            else
+                echo Failed to download the agent package. Please make sure the package is imported in the Deep Security Manager
+                logger -t Failed to download the agent package. Please make sure the package is imported in the Deep Security Manager
+                exit 1
+            fi
+            if [[ ${rc} != 0 ]]; then
+                echo Failed to install the agent package
+                logger -t Failed to install the agent package
+                exit 1
+            fi
+            echo Install the agent package successfully
+            sleep 15
+            sudo /opt/ds_agent/dsa_control -r
+            sudo /opt/ds_agent/dsa_control -a $ACTIVATIONURL "tenantID:${TENANTID}" "token:${TOKEN}" 2>&1 >> /var/vcap/sys/log/trend-agent/log
+            sleep 15
+            ps -ef | grep "/opt/ds_agent/ds_agent -w /var/opt/ds_agent -b -i -e /opt/ds_agent/ext" | head -n 1 | awk '{print $2}' > /var/vcap/sys/run/trend-agent/pid
+            sleep 5
+            exit 0 
+            #ps -ef | awk '/ds/{print $2}' > /var/vcap/sys/run/trend-agent/pid
+            EOL
+            cat run_1.sh > run.sh
+            cat run_2.sh >> run.sh
+            ls -ltr 
+            cat run.sh
+            ####Copy to templates
+            cp run.sh TrendAgentRel/jobs/trend-agent/templates/run.sh
+            cat TrendAgentRel/jobs/trend-agent/templates/run.sh
+            
+            cat > runtime-config-latest.yml <<EOL
+            releases:
+            - name: trend-agent
+              version: ${version}
+            addons:
+            - name: trend-agent-addon
+              jobs:
+              - name: trend-agent
+                release: trend-agent
+              include:
+                stemcell:
+                  - os: ubuntu-xenial
+              exclude:
+                lifecycle: errand
+            EOL
+            ###Add runtime config yaml
+            cp runtime-config-latest.yml TrendAgentRel/runtime-config-latest.yml
+            ls -ltr
+            cp  env/"${ENV_FILE}" TrendAgentRel/
+            om --env TrendAgentRel/"${ENV_FILE}" \
+              curl -p /api/v0/deployed/director/credentials/bosh_commandline_credentials > TrendAgentRel/bosh-client-creds
+            
+            cat > install.sh.1 << 'EOL'
+            #!/bin/bash
+            set -eux
+            date
+            BOSH_EXPORTS=$(jq -r .credential bosh-client-creds)
+            export $BOSH_EXPORTS
+            bosh vms
+            rm -Rf /home/ubuntu/TrendAgentRel/dev_releases/trend-agent/*
+            #bosh create-release --force --version=v1.0.0 --tarball=trend-agent.tar
+            EOL
+            cat > install.sh.2 << EOL 
+            bosh create-release --force --version=${version} --tarball=trend-agent-${version}.tar
+            bosh upload-release trend-agent-${version}.tar -n
+            bosh update-runtime-config runtime-config-latest.yml -n
+            bosh runtime-config
+            EOL
+            cat install.sh.1 > install.sh
+            cat install.sh.2 >> install.sh
+            cat install.sh
+            cp install.sh TrendAgentRel/
+            ssh -o StrictHostKeyChecking=no ubuntu@${OPSMAN_IP} -i ssh.key "date && rm -Rf /home/ubuntu/TrendAgentRel && mkdir /home/ubuntu/TrendAgentRel"
+            scp -r -o stricthostkeychecking=no -i ssh.key TrendAgentRel/* ubuntu@${OPSMAN_IP}:/home/ubuntu/TrendAgentRel
+            ssh -o StrictHostKeyChecking=no ubuntu@${OPSMAN_IP} -i ssh.key "chmod -R 777 /home/ubuntu/TrendAgentRel/install.sh"
+            ssh -o StrictHostKeyChecking=no ubuntu@${OPSMAN_IP} -i ssh.key "cd /home/ubuntu/TrendAgentRel && ./install.sh"

@@ -14,9 +14,9 @@ https://stackoverflow.com/questions/637827/redirect-stderr-and-stdout-in-bash
 
 
 If monit fails with "execution failed", use below commands
-sudo su  
-monit summary
-monit unmonitor trend-agent
-ps -ef | grep /opt/ds_agent/ds_agent | head -n 1 | awk '{print $2}' > /var/vcap/sys/run/trend-agent/pid
-monit monitor trend-agent
+sudo su  \
+monit summary \
+monit unmonitor trend-agent \
+ps -ef | grep /opt/ds_agent/ds_agent | head -n 1 | awk '{print $2}' > /var/vcap/sys/run/trend-agent/pid \
+monit monitor trend-agent \
 monit summary
